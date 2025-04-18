@@ -1,0 +1,15 @@
+# 忽略所有 .pyc 文件
+*.pyc
+Config.py
+__pycache__/
+
+# 忽略 __pycache__ 目录
+checkpoints/
+dataset/
+pretrained/
+
+
+
+# 忽略日志文件夹
+logs/
+
