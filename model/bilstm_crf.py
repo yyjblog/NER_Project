@@ -39,20 +39,6 @@ class BiLSTM_CRF(nn.Module):
         logits = self.classifier(lstm_out)
         output = (None, logits)
 
-        # if labels is not None:
-        #     size = logits.size()
-        #     labels = labels[:, :size[1]]
-        #     attention_mask = attention_mask[:, :size[1]]
-        #
-        #     loss_fct = nn.CrossEntropyLoss(weight=self.label_weights, reduction='none')
-        #     loss = loss_fct(logits.view(-1, self.num_label), labels.view(-1))
-        #     loss = loss.view(labels.size())
-        #     loss = loss * attention_mask.float()
-        #     loss = loss.sum(dim=1) / attention_mask.sum(dim=1)
-        #     loss = loss.mean()
-        #
-        #     output = (loss, logits)
-
         if labels is not None:
             size = logits.size()
             labels = labels[:, :size[1]]
