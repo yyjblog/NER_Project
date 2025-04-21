@@ -329,6 +329,9 @@ class CRF(nn.Module):
             # 若下timestep没结束，设置当前分数为下一个时刻的分数
             # 同时记录当前时刻产生下一个时刻分数的index
             score = torch.where(mask[i].unsqueeze(-1), next_score, score)
+            # 修改约331行附近：
+            # mask_bool = mask[i].unsqueeze(-1).to(torch.bool)  # 显式转换为bool类型
+            # score = torch.where(mask_bool, next_score, score)
             indices = torch.where(mask[i].unsqueeze(-1), indices, oor_idx)
             history_idx[i - 1] = indices
 

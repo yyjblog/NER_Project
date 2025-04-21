@@ -154,4 +154,61 @@ class Predictor(object):
                 src = self.tokenizer.convert_tokens_to_string(src)
         return src
 
+    def predict_text(self, text):
+        """
+        预测单个句子
+        """
+        self.model.eval()
+        device = self.config.device
+
+        if self.config.model_name in self.config.model_list_nopretrain:
+            # 非预训练模型
+            tokens = list(text)
+            token_ids = [self.tokenizer.get(t, self.tokenizer.get('[UNK]', 0)) for t in tokens]
+            input_ids = torch.tensor([token_ids], dtype=torch.long).to(device)
+            attention_mask = torch.tensor([[1] * len(token_ids)], dtype=torch.bool).to(device)
+        else:
+            # 预训练模型（BERT等）
+            encoded = self.tokenizer(text,
+                                     return_tensors='pt',
+                                     max_length=self.config.max_seq_len if hasattr(self.config, "max_seq_len") else 128,
+                                     padding='max_length',
+                                     truncation=True)
+            input_ids = encoded['input_ids'].to(device)
+            attention_mask = encoded['attention_mask'].to(device)
+            tokens = self.tokenizer.convert_ids_to_tokens(input_ids[0])
+
+        with torch.no_grad():
+            outputs = self.model(input_ids)
+            logits = outputs[1]
+            preds = self.model.crf.decode(logits, mask=attention_mask)[0]
+
+        preds = preds[0].cpu().numpy()  # 转换为 NumPy 数组
+
+        # 去除padding部分（预训练模型注意跳过[PAD]）
+        pred_labels = [self.id2label[int(i)] for i in preds[:len(tokens)]]
+
+
+
+        # 将BIO标签转化为实体
+        tag_types = [re.sub(r'B-|I-|S-|M-|E-', '', x) for x in self.id2label.values() if x != 'O']
+        tag_types = list(set(tag_types))
+        bio_entities = self.bio2token(tokens, pred_labels, tag_types)
+
+        cleaned_tokens, cleaned_labels = [], []
+        for i, t in enumerate(tokens):
+            if t != '[PAD]':
+                cleaned_tokens.append(t)
+                cleaned_labels.append(pred_labels[i])
+
+        return {
+            'tokens': cleaned_tokens,
+            'labels': cleaned_labels,
+            'entities': bio_entities
+        }
+
+
+
+
+
 
