@@ -12,7 +12,13 @@ from process.Predictor import Predictor
 #             _, label = line.strip().split()
 #             label_counter[label] += 1
 # print(label_counter)
+
+ALLOWED_DATASETS = ['CNER', 'CLUENER', 'CMEEE']
+ALLOWED_MODELS = ['bert_crf', 'bilstm_crf', 'roberta_crf']
 config = Config()
+config.dataset = "CMEEE"
+config.model_name = "roberta_crf"
+config.update_paths()
 predictor = Predictor(config,test_loader = None)
 """
 return {
@@ -21,7 +27,7 @@ return {
     'entities': bio_entities
 }
 """
-res = predictor.predict_text("2009年11月至2012年5月，任浙江明牌珠宝股份有限公司董事会秘书；")
+res = predictor.predict_text("大量给予肾上腺皮质激素还可能加重机体的应激状态，也会造成严重的继发性感染使病情加重。")
 # 检查标签对齐
 
 print("🟢 Tokens:")

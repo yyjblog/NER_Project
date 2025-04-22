@@ -9,7 +9,7 @@ class Config(object):
         self.continue_train = True                                     # 是否继续训练上次的模型
         self.visible_device = '0'                                       # 可见的GPU卡号
         self.device = 'cuda:0'                                          # 主卡号
-        self.model_name = 'bilstm_crf'                                    # 模型名称，bilstm_crf/bert_crf/roberta_crf
+        self.model_name = 'roberta_crf'                                    # 模型名称，bilstm_crf/bert_crf/roberta_crf
         self.language = 'zh'                                            # 数据源语言：zh-中文，en-英文
 
         self.model_list_nopretrain = ['bilstm_crf']
@@ -18,7 +18,7 @@ class Config(object):
         self.model_pretrain_trainable = True
 
         # data
-        self.dataset = 'CMEEE'                                           # 数据集名称
+        self.dataset = 'CNER'                                           # 数据集名称
         self.path_dataset = './dataset/'+ self.dataset +'/'             # 数据集路径
         self.path_output = f'./dataset/{self.dataset}/{self.model_name}_output.txt'  # Preditor输出路径
         self.label_weights = None
@@ -32,16 +32,16 @@ class Config(object):
         self.path_optimizer = self.path_base + '/optimizer/'            # 优化器保存路径
         
         # model parameter
-        self.learning_rate = 1e-3                                       # 模型学习率
-        self.crf_learning_rate = 5e-3                                   # CRF层学习率
+        self.learning_rate = 3e-5                                       # 模型学习率
+        self.crf_learning_rate = 1e-3                                   # CRF层学习率
         self.warmup_proportion = 0.1                                    # warm up的步数比例x（全局总训练次数t中前x*t步）
         self.weight_decay = 0.01                                        # 权重衰减的比例
-        self.adam_epsilon = 1e-08               
+        self.adam_epsilon = 1e-08
 
         # training
-        self.epoch = 80                                                # 训练轮数
-        self.step_save = 100                                            # 每间多少轮保存一次模型
-        self.batch_size = 256                                             # 批次大小
+        self.epoch = 1                                                # 训练轮数
+        self.step_save = 30                                            # 每间多少轮保存一次模型
+        self.batch_size = 32                                             # 批次大小
         self.max_seq_length = 256                                       # 句子最长长度
         self.path_tgt_map = './dataset/'+ self.dataset +'/map.txt'      # 标签文件
         self.path_vocab = './dataset/'+ self.dataset +'/vocab.pkl'      # 词表
@@ -86,3 +86,20 @@ class Config(object):
         # albert: https://github.com/brightmart/albert_zh
         # electra: https://github.com/ymcui/Chinese-ELECTRA
 
+    def update_paths(self):
+        self.path_dataset = f'./dataset/{self.dataset}/'
+        self.path_output = f'./dataset/{self.dataset}/{self.model_name}_output.txt'
+        self.path_base = f'./checkpoints/{self.dataset}/{self.model_name}'
+        self.path_tokenizer = f'{self.path_base}/tokenizer/'
+        self.path_model = f'{self.path_base}/model/'
+        self.path_optimizer = f'{self.path_base}/optimizer/'
+        self.path_tgt_map = f'./dataset/{self.dataset}/map.txt'
+        self.path_vocab = f'./dataset/{self.dataset}/vocab.pkl'
+
+
+        '''
+        模型 | 学习率 | CRF学习率 | Batch Size | Max Len | Epoch
+        BiLSTM-CRF | 1e-3 ~ 5e-3 | 同上 | 32 ~ 64 | 128~256 | 20~50
+        BERT-CRF | 2e-5 ~ 5e-5 | 1e-3 ~ 1e-2 | 16 ~ 32 | 128~256 | 5~10
+        RoBERTa-CRF | 1e-5 ~ 3e-5 | 1e-3 ~ 5e-3 | 8 ~ 16 | 128~256 | 3~5
+        '''

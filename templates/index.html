@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>命名实体识别系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            line-height: 1.6;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .control-panel {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .select-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #666;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .text-input {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            resize: vertical;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        .highlight {
+            padding: 2px 4px;
+            border-radius: 3px;
+            margin: 0 2px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .model-info {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #e8f5e9;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .model-info p {
+            margin: 5px 0;
+            color: #2e7d32;
+        }
+
+        .dataset-info {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #e3f2fd;
+            border-radius: 5px;
+            border-left: 4px solid #2196F3;
+        }
+
+        .dataset-info h3 {
+            color: #1976D2;
+            margin-bottom: 10px;
+        }
+
+        .dataset-info p {
+            margin: 5px 0;
+            color: #0D47A1;
+        }
+
+        .tag-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .tag-item {
+            background-color: #BBDEFB;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+
+        .tag-item span {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        .switch-loading {
+            display: none;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .switch-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+
+        .switch-loading span {
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>命名实体识别系统</h1>
+        
+        <div class="model-info" id="modelInfo">
+            <p>当前数据集：<span id="currentDataset">CNER</span></p>
+            <p>当前模型：<span id="currentModel">RoBERTa-CRF</span></p>
+        </div>
+
+        <div class="dataset-info" id="datasetInfo">
+            <h3>数据集标签说明</h3>
+            <div id="datasetDescription"></div>
+            <div class="tag-list" id="tagList"></div>
+        </div>
+        
+        <div class="control-panel">
+            <div class="select-group">
+                <label for="dataset">选择数据集：</label>
+                <select id="dataset">
+                    <option value="CLUENER">CLUENER</option>
+                    <option value="CNER" selected>CNER</option>
+                    <option value="CMEEE">CMEEE</option>
+                </select>
+            </div>
+            
+            <div class="select-group">
+                <label for="model">选择模型：</label>
+                <select id="model">
+                    <option value="bert_crf">BERT-CRF</option>
+                    <option value="bilstm_crf">BiLSTM-CRF</option>
+                    <option value="roberta_crf" selected>RoBERTa-CRF</option>
+                </select>
+            </div>
+            
+            <button onclick="switchModel()">切换模型</button>
+        </div>
+
+        <div class="switch-loading" id="switchLoading">
+            <div class="switch-spinner"></div>
+            <span>正在切换模型和数据集...</span>
+        </div>
+
+        <div class="text-input">
+            <label for="inputText">输入文本：</label>
+            <textarea id="inputText" placeholder="请输入要识别的文本..."></textarea>
+        </div>
+
+        <button onclick="predict()">开始识别</button>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>正在处理中...</p>
+        </div>
+
+        <div class="result" id="result">
+            <h3>识别结果：</h3>
+            <div id="highlightedText"></div>
+            <div id="entitiesList"></div>
+        </div>
+    </div>
+
+    <script>
+        // 预定义的颜色列表
+        const colorPalette = [
+            '#ffd700', // 金色
+            '#90ee90', // 浅绿色
+            '#87ceeb', // 天蓝色
+            '#ffb6c1', // 浅粉色
+            '#ffa07a', // 浅橙色
+            '#98fb98', // 淡绿色
+            '#dda0dd', // 梅红色
+            '#f0e68c', // 卡其色
+            '#add8e6', // 淡蓝色
+            '#e6e6fa', // 淡紫色
+            '#ffc0cb', // 粉色
+            '#98fb98', // 淡绿色
+            '#d8bfd8', // 蓟色
+            '#ffdead', // 纳瓦白
+            '#f0fff0', // 蜜瓜色
+            '#f5f5dc', // 米色
+            '#ffe4c4', // 杏仁白
+            '#ffebcd', // 古董白
+            '#f5deb3', // 小麦色
+            '#deb887'  // 实木色
+        ];
+
+        // 数据集标签信息
+        const datasetInfo = {
+            'CNER': {
+                description: 'CNER数据集是一个中文命名实体识别数据集，主要关注人名、地名、机构名等常见实体类型。该数据集广泛应用于中文信息抽取和文本分析任务。',
+                tags: [
+                    { name: 'CONT', desc: '国家/地区' },
+                    { name: 'EDU', desc: '学历' },
+                    { name: 'LOC', desc: '地点' },
+                    { name: 'NAME', desc: '人名' },
+                    { name: 'ORG', desc: '组织机构' },
+                    { name: 'PRO', desc: '专业' },
+                    { name: 'RACE', desc: '民族' },
+                    { name: 'TITLE', desc: '职位/职称' }
+                ]
+            },
+            'CMEEE': {
+                description: 'CMEEE数据集是一个医学实体识别数据集，专注于识别医学文本中的各种实体类型，如疾病、症状、药物等。该数据集对于医疗信息处理和临床决策支持具有重要意义。',
+                tags: [
+                    { name: 'bod', desc: '身体部位' },
+                    { name: 'dep', desc: '科室' },
+                    { name: 'dis', desc: '疾病' },
+                    { name: 'dru', desc: '药物' },
+                    { name: 'equ', desc: '医疗设备' },
+                    { name: 'ite', desc: '检查项目' },
+                    { name: 'mic', desc: '微生物' },
+                    { name: 'pro', desc: '医疗程序' },
+                    { name: 'sym', desc: '症状' }
+                ]
+            },
+            'CLUENER': {
+                description: 'CLUENER数据集是一个细粒度的中文命名实体识别数据集，包含10种实体类型。该数据集的特点是实体类型更加细分，适合进行更精细的实体识别任务。',
+                tags: [
+                    { name: 'address', desc: '地址' },
+                    { name: 'book', desc: '书籍' },
+                    { name: 'company', desc: '公司' },
+                    { name: 'game', desc: '游戏' },
+                    { name: 'government', desc: '政府机构' },
+                    { name: 'movie', desc: '电影' },
+                    { name: 'name', desc: '人名' },
+                    { name: 'organization', desc: '组织' },
+                    { name: 'position', desc: '职位' },
+                    { name: 'scene', desc: '场景' }
+                ]
+            }
+        };
+
+        // 更新数据集信息显示
+        function updateDatasetInfo() {
+            const dataset = document.getElementById('dataset').value;
+            const info = datasetInfo[dataset];
+            
+            document.getElementById('datasetDescription').innerHTML = `<p>${info.description}</p>`;
+            
+            const tagList = document.getElementById('tagList');
+            tagList.innerHTML = info.tags.map(tag => 
+                `<div class="tag-item"><span>${tag.name}</span>${tag.desc}</div>`
+            ).join('');
+        }
+
+        // 页面加载时更新一次
+        updateDatasetInfo();
+
+        // 监听数据集选择变化
+        document.getElementById('dataset').addEventListener('change', updateDatasetInfo);
+
+        // 动态添加实体类型样式
+        function addEntityStyles(entities) {
+            const styleSheet = document.styleSheets[0];
+            const entityTypes = new Set(entities.map(entity => entity[0]));
+            
+            // 移除旧的实体类型样式
+            for (let i = styleSheet.cssRules.length - 1; i >= 0; i--) {
+                const rule = styleSheet.cssRules[i];
+                if (rule.selectorText && rule.selectorText.startsWith('.highlight.')) {
+                    styleSheet.deleteRule(i);
+                }
+            }
+            
+            // 添加新的实体类型样式
+            let colorIndex = 0;
+            entityTypes.forEach(type => {
+                const color = colorPalette[colorIndex % colorPalette.length];
+                styleSheet.insertRule(`.highlight.${type} { background-color: ${color}; }`, styleSheet.cssRules.length);
+                colorIndex++;
+            });
+        }
+
+        // 更新当前模型和数据集显示
+        function updateModelInfo() {
+            const dataset = document.getElementById('dataset').value;
+            const model = document.getElementById('model').value;
+            document.getElementById('currentDataset').textContent = dataset;
+            document.getElementById('currentModel').textContent = model;
+        }
+
+        // 页面加载时更新一次
+        updateModelInfo();
+
+        async function switchModel() {
+            const dataset = document.getElementById('dataset').value;
+            const model = document.getElementById('model').value;
+            
+            // 显示切换加载状态
+            document.getElementById('switchLoading').style.display = 'block';
+            
+            try {
+                const response = await fetch('http://127.0.0.1:8000/exchange', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        dataset: dataset,
+                        model_name: model
+                    })
+                });
+                
+                const data = await response.json();
+                // 更新当前模型和数据集显示
+                updateModelInfo();
+                alert(data.message);
+            } catch (error) {
+                alert('切换模型失败：' + error.message);
+            } finally {
+                document.getElementById('switchLoading').style.display = 'none';
+            }
+        }
+
+        async function predict() {
+            const text = document.getElementById('inputText').value;
+            if (!text) {
+                alert('请输入要识别的文本');
+                return;
+            }
+
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: text
+                    })
+                });
+                
+                const data = await response.json();
+                displayResults(data, text);
+            } catch (error) {
+                alert('预测失败：' + error.message);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('result').style.display = 'block';
+            }
+        }
+
+        function displayResults(data, originalText) {
+            const highlightedText = document.getElementById('highlightedText');
+            const entitiesList = document.getElementById('entitiesList');
+
+            // 1. 过滤特殊token
+            const filteredTokens = data.tokens.filter(t => !['[CLS]', '[SEP]', '[PAD]'].includes(t));
+            
+            // 2. 创建token信息数组,存储每个token的实体类型
+            const tokenInfo = new Array(filteredTokens.length).fill(null);
+            
+            // 3. 按起始位置排序实体
+            const sortedEntities = [...data.entities].sort((a, b) => {
+                const startDiff = a[2][0] - b[2][0];
+                if (startDiff !== 0) return startDiff;
+                return a[2][a[2].length - 1] - b[2][b[2].length - 1];
+            });
+            
+            // 4. 为每个token标记实体类型
+            sortedEntities.forEach(([type, , positions]) => {
+                // 获取实体的起始和结束位置
+                const start = positions[0] - 1;
+                const end = positions[positions.length - 1] - 1;
+                
+                // 标记实体范围内的所有token
+                for (let i = start; i <= end; i++) {
+                    if (i >= 0 && i < filteredTokens.length) {
+                        tokenInfo[i] = type;
+                    }
+                }
+            });
+            
+            // 5. 添加实体样式
+            addEntityStyles(sortedEntities);
+            
+            // 6. 构建高亮HTML
+            let highlightedHTML = '';
+            let currentSpan = null;
+            
+            for (let i = 0; i < filteredTokens.length; i++) {
+                const currentToken = filteredTokens[i];
+                const currentType = tokenInfo[i];
+                const prevType = (i > 0) ? tokenInfo[i - 1] : null;
+                
+                if (currentType) {
+                    // 如果当前token是实体的一部分
+                    if (currentType !== prevType) {
+                        // 如果前一个token不是实体或类型不同，开始新的span
+                        if (currentSpan) {
+                            highlightedHTML += `</span>`;
+                        }
+                        highlightedHTML += `<span class="highlight ${currentType}">`;
+                        currentSpan = currentType;
+                    }
+                    highlightedHTML += currentToken;
+                } else {
+                    // 如果当前token不是实体的一部分
+                    if (currentSpan) {
+                        // 如果之前有打开的span，关闭它
+                        highlightedHTML += `</span>`;
+                        currentSpan = null;
+                    }
+                    highlightedHTML += currentToken;
+                }
+            }
+            
+            // 确保最后一个span被关闭
+            if (currentSpan) {
+                highlightedHTML += `</span>`;
+            }
+            
+            highlightedText.innerHTML = highlightedHTML;
+            
+            // 7. 显示实体列表
+            let entitiesHTML = '<h4>识别的实体：</h4>';
+            if (sortedEntities.length === 0) {
+                entitiesHTML += '<p style="color: #666; font-style: italic;">未识别到任何实体</p>';
+            } else {
+                entitiesHTML += '<ul>';
+                sortedEntities.forEach(entity => {
+                    const [type, text] = entity;
+                    entitiesHTML += `<li><span class="highlight ${type}">${text}</span> (${type})</li>`;
+                });
+                entitiesHTML += '</ul>';
+            }
+            entitiesList.innerHTML = entitiesHTML;
+        }
+
+    </script>
+</body>
+</html> 
