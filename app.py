@@ -70,13 +70,20 @@ def predict():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/')
-def home():
-    return render_template('index.html')
 
-def open_browser():
-    webbrowser.open_new("http://127.0.0.1:8000/")
+# 运行直接打开网页版本
+# @app.route('/')
+# def home():
+#     return render_template('index.html')
+#
+# def open_browser():
+#     webbrowser.open_new("http://127.0.0.1:8000/")
+#
+# if __name__ == "__main__":
+#     threading.Timer(1.25, open_browser).start()  # 延迟打开浏览器
+#     app.run(host='127.0.0.1', port=8000, debug=True)
 
+
+# 前后端分离版本
 if __name__ == "__main__":
-    threading.Timer(1.25, open_browser).start()  # 延迟打开浏览器
     app.run(host='127.0.0.1', port=8000, debug=True)

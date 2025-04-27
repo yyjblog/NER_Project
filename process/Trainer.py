@@ -68,15 +68,17 @@ class Trainer(object):
                 # if self.config.model_name in self.config.model_list_nopretrain:
                 self.init_network(self.model)
         else:
-            self.tokenizer = map_tokenizer(self.config.model_name).from_pretrained(self.config.model_pretrain_online_checkpoint)
-            # tokenizer = BertTokenizer.from_pretrained(self.config.model_pretrain_online_checkpoint)
-            self.tokenizer.save_pretrained(self.config.path_tokenizer)
+            if self.config.continue_train:
+                self.tokenizer = map_tokenizer(self.config.model_name).from_pretrained(self.config.path_tokenizer)
+            else:
+                self.tokenizer = map_tokenizer(self.config.model_name).from_pretrained(self.config.model_pretrain_online_checkpoint)
+                self.tokenizer.save_pretrained(self.config.path_tokenizer)
             self.func_index2token = self.tokenizer.convert_ids_to_tokens
             self.model = map_model(self.config.model_name)
             # 参数加载
             if self.config.continue_train:
                 # 读取已存在的模型参数
-                self.model = self.model.from_pretrained(self.config.path_model + 'step_best')
+                self.model = self.model.from_pretrained(self.config.model_pretrain_online_checkpoint)
             else:
                 # 加载预训练模型
                 model_config = AutoConfig.from_pretrained(self.config.model_pretrain_online_checkpoint, num_labels=self.num_labels)#num_labels=len(tgt2index.keys())-1)
@@ -300,12 +302,12 @@ class Trainer(object):
                 os.makedirs(self.config.path_model)
             if self.config.model_name in self.config.model_list_nopretrain:
                 torch.save(self.model.state_dict(), self.config.path_model+'pytorch_model.bin')
-            print("保存当前模型到 %s" % self.config.path_model)
+                print("保存当前模型到 %s" % self.config.path_model)
             if not os.path.exists(self.config.path_optimizer):
                 os.mkdir(self.config.path_optimizer)
             torch.save(self.optimizer.state_dict(), os.path.join(self.config.path_optimizer, "optimizer.pt"))
             torch.save(self.scheduler.state_dict(), os.path.join(self.config.path_optimizer, "scheduler.pt"))
-            print("Saving optimizer and scheduler states to %s"%self.config.path_model)
+            print("Saving optimizer and scheduler states to %s"%self.config.path_optimizer)
             # 保存最优的模型
             if f1_eval > f1_best:
                 # 创建文件夹

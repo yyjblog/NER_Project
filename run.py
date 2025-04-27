@@ -45,5 +45,11 @@ if __name__ == '__main__':
         predictor = Predictor(config, test_loader)
         predictor.predict()
 
-    
+    end_time = time.time()
+    total_time = end_time - start_time
+    minutes = int(total_time // 60)
+    seconds = int(total_time % 60)
+    print(f"\n任务完成，总耗时：{minutes} 分 {seconds} 秒")
+
+
     
